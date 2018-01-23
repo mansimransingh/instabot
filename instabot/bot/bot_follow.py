@@ -3,11 +3,17 @@ from tqdm import tqdm
 from . import limits
 from . import delay
 from .bot_support import console_print
+from .bot_filter import skippedlist_adder
 
+def follow(self, username_or_id):
+    user_id = self.convert_to_user_id(username_or_id)    
+    console_print('\n ===> Going to Follow user_id: %s %s' % (user_id, username_or_id))  # Log to console
 
-def follow(self, user_id):
-    user_id = self.convert_to_user_id(user_id)
-    console_print(self.verbosity, '\n ===> Going to Follow user_id: %s ' % (user_id))  # Log to console
+    if user_id is None:
+        self.logger.info("User not found %s" % (username_or_id))
+        skippedlist_adder(self, username_or_id)
+        return False
+        
     if not self.check_user(user_id):
         return True
     if limits.check_if_bot_can_follow(self):
@@ -21,6 +27,8 @@ def follow(self, user_id):
             with open('followed.txt', 'a') as file:  # Appending user_id to the followed.txt
                 # Appending user_id to the followed.txt
                 file.write(str(user_id) + "\n")
+                if username_or_id != user_id:
+                    file.write(str(username_or_id)+"\n")
             return True
     else:
         self.logger.info("Out of follows for today.")
@@ -63,11 +71,9 @@ def follow_users(self, user_ids):
                     delay.error_delay(self)
                     broken_items = broken_items + user_ids[user_ids.index(user_id):]
                     break
-
-        else:
-            delay.error_delay(self)
-            broken_items = broken_items + user_ids[user_ids.index(user_id):]
-            break
+            else:
+                delay.error_delay(self)
+                broken_items = broken_items + user_ids[user_ids.index(user_id):]
 
     self.logger.info("DONE: Total followed %d users." % self.total_followed)
     return broken_items
